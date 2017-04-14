@@ -66,6 +66,8 @@ class SelectorBIC(ModelSelector):
 
     http://www2.imm.dtu.dk/courses/02433/doc/ch6_slides.pdf
     Bayesian information criteria: BIC = -2 * logL + p * logN
+    p = num of param
+    N = num of data pt
     """
 
     def select(self):
@@ -76,8 +78,25 @@ class SelectorBIC(ModelSelector):
         """
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-        # TODO implement model selection based on BIC scores
-        raise NotImplementedError
+        hmm_model = None
+        criteria = float('inf')
+
+        for tmp_n_components in range(self.min_n_components, self.max_n_components+1):
+            try:
+                tmp_hmm_model = GaussianHMM(n_components=tmp_n_components, covariance_type="diag", n_iter=1000,
+                                        random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
+                tmp_logL = tmp_hmm_model.score(self.X, self.lengths)
+                tmp_criteria = (-2)*tmp_logL + tmp_n_components*math.log(len(self.X))
+                if tmp_criteria < criteria:
+                    criteria = tmp_criteria
+                    hmm_model = tmp_hmm_model
+            except:
+                pass
+        
+        if self.verbose and hmm_model == None:
+            print('Error KVPPAOQI: this_word={}'.format(self.this_word))
+        
+        return hmm_model
 
 
 class SelectorDIC(ModelSelector):
@@ -87,13 +106,47 @@ class SelectorDIC(ModelSelector):
     Document Analysis and Recognition, 2003. Proceedings. Seventh International Conference on. IEEE, 2003.
     http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.58.6208&rep=rep1&type=pdf
     DIC = log(P(X(i)) - 1/(M-1)SUM(log(P(X(all but i))
+    
+    M = num of classes
     '''
 
     def select(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-        # TODO implement model selection based on DIC scores
-        raise NotImplementedError
+        hmm_model = None
+        criteria = float('-inf')
+
+        for tmp_n_components in range(self.min_n_components, self.max_n_components+1):
+            try:
+                tmp_hmm_model = GaussianHMM(n_components=tmp_n_components, covariance_type="diag", n_iter=1000,
+                                        random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
+                tmp_logL = tmp_hmm_model.score(self.X, self.lengths)
+                
+                tmp_logL2 = 0
+                for w2 in self.hwords:
+                    try:
+                        if w2 == self.this_word:
+                            continue
+                        x2, l2 = self.hwords[w2]
+                        tmp_logL2_t = tmp_hmm_model.score(x2, l2)
+                        tmp_logL2 += tmp_logL2_t
+                        #print('VOQIIMMP: this_word={}, w2={}, tmp_logL2_t={}'.format(self.this_word, w2, tmp_logL2_t))
+                    except:
+                        #print('TWSBLHSA fail: this_word={}, w2={}'.format(self.this_word, w2))
+                        pass
+                
+                tmp_criteria = tmp_logL - tmp_logL2 / (len(self.hwords)-1)
+                if tmp_criteria > criteria:
+                    criteria = tmp_criteria
+                    hmm_model = tmp_hmm_model
+            except Exception as ex:
+                #print ("IWPBJMWC: this_word={}, tmp_n_components={}, ex={}".format(self.this_word,tmp_n_components,ex))
+                pass
+            
+        if self.verbose and hmm_model == None:
+            print('Error TNIJKGEI: this_word={}'.format(self.this_word))
+        
+        return hmm_model
 
 
 class SelectorCV(ModelSelector):
@@ -104,5 +157,37 @@ class SelectorCV(ModelSelector):
     def select(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-        # TODO implement model selection using CV
-        raise NotImplementedError
+        n_components = None
+        logL = float('-inf')
+        
+        try:
+            split_method = KFold(n_splits=min(3,len(self.sequences)))
+        except:
+            return None
+
+        for tmp_n_components in range(self.min_n_components, self.max_n_components+1):
+            try:
+                tmp_logL = 0
+                for cv_train_idx, cv_test_idx in split_method.split(self.sequences):
+                    train_x, train_length = combine_sequences(cv_train_idx, self.sequences)
+                    test_x, test_length = combine_sequences(cv_test_idx, self.sequences)
+                    tmp_hmm_model = GaussianHMM(n_components=tmp_n_components, covariance_type="diag", n_iter=1000,
+                                            random_state=self.random_state, verbose=False).fit(train_x, train_length)
+                    tmp_logL += tmp_hmm_model.score(test_x, test_length)
+                #print('PTCCKVDP: this_word={}, tmp_n_components={}, tmp_logL={}'.format(self.this_word,tmp_n_components,tmp_logL))
+                if tmp_logL > logL:
+                    logL = tmp_logL
+                    n_components = tmp_n_components
+            except:
+                #print('JAYLNMOK: fail, this_word={}, tmp_n_components={}'.format(self.this_word,tmp_n_components,tmp_logL))
+                pass
+        
+        if self.verbose and n_components == None:
+            print('Error MIHMRNLR: this_word={}'.format(self.this_word))
+            return None
+        
+        try:
+            return GaussianHMM(n_components=n_components, covariance_type="diag", n_iter=1000,
+                random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
+        except:
+            return None

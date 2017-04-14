@@ -1,0 +1,24 @@
+features_list = {
+    'ground':features_ground,
+    'norm'  :features_norm,
+    'polar' :features_polar,
+    'delta' :features_delta,
+    'custom':features_custom
+}
+model_selector_list = {
+    'bic':SelectorBIC,
+    'dic':SelectorDIC,
+    'cv' :SelectorCV
+}
+
+for features_k in features_list:
+    for model_selector_k in model_selector_list:
+        print('features={}, model_selector={}'.format(features_k,model_selector_k))
+        
+        features = features_list[features_k]
+        model_selector = model_selector_list[model_selector_k]
+
+        models = train_all_words(features, model_selector)
+        test_set = asl.build_test(features)
+        probabilities, guesses = recognize(models, test_set)
+        show_errors(guesses, test_set)
