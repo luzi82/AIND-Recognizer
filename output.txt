@@ -555,6 +555,7 @@ Video  Recognized                                                    Correct
   201: JOHN *MARY *JOHN *JOHN *JOHN HOUSE                            JOHN TELL MARY IX-1P BUY HOUSE
 features=custom, model_selector=bic
 
+
 **** WER = 0.5898876404494382
 Total correct: 73 out of 178
 Video  Recognized                                                    Correct

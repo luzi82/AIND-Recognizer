@@ -86,7 +86,9 @@ class SelectorBIC(ModelSelector):
                 tmp_hmm_model = GaussianHMM(n_components=tmp_n_components, covariance_type="diag", n_iter=1000,
                                         random_state=self.random_state, verbose=False).fit(self.X, self.lengths)
                 tmp_logL = tmp_hmm_model.score(self.X, self.lengths)
-                tmp_criteria = (-2)*tmp_logL + len(self.X[0])*math.log(len(self.X))
+                num_feature = self.X[0]
+                num_param = 2*tmp_n_components*num_feature + tmp_n_components*tmp_n_components
+                tmp_criteria = (-2)*tmp_logL + len(num_param)*math.log(len(self.X))
                 if tmp_criteria < criteria:
                     criteria = tmp_criteria
                     hmm_model = tmp_hmm_model
